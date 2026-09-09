@@ -68,9 +68,9 @@ import { useRouter } from "vue-router";
 import { reactive } from "vue";
 import { apiSignIn } from "@/functions/api/auth";
 import { LoadingModal, MessageModal, CloseModal } from "@/functions/swal";
-// import { useUserStore } from "@/stores/user";
+import { useUserStore } from "@/stores/user";
 const router = useRouter();
-// const userStore = useUserStore();
+const userStore = useUserStore();
 
 const user = reactive({
   email: "",
@@ -95,8 +95,8 @@ async function signIn() {
     LoadingModal("Signing In...");
     const response = await apiSignIn(user);
     const { data } = response;
-    // userStore.setState(data.user);
-    // userStore.setSanctumToken(data.token);
+    userStore.setState(data.data);
+    userStore.setSanctumToken(data.token);
     resetAllState();
     router.replace({ name: "dashboard" });
     return CloseModal();
