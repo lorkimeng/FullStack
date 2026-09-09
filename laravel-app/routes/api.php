@@ -6,6 +6,10 @@ use App\Http\Controllers\API\AuthController;
 
 Route::post('/signup', [AuthController::class, 'signup'])->name('signup');
 Route::post('/signin', [AuthController::class, 'signin'])->name('signin');
+Route::get('/verify/email/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+    ->middleware('signed')
+    ->name('verify.email');
+Route::post('/send/verification-email', [AuthController::class, 'sendVerificationEmail']);
 
 // route group for auth:sanctum middleware
 Route::group(['middleware' => 'auth:sanctum'], function () {
