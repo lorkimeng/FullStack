@@ -83,6 +83,12 @@
               </div>
             </div>
           </form>
+          <div class="social-auth-links text-center mt-3 mb-3">
+            <p>- OR -</p>
+            <button @click="googleSignUp()" class="btn btn-block btn-danger">
+              <i class="fab fa-google mr-2"></i> Sign up with Google
+            </button>
+          </div>
           <p class="mb-1">
             <RouterLink :to="{ name: 'auth.signin' }" class="text-center"
               >I already have an account</RouterLink
@@ -111,6 +117,7 @@
 import { useRouter } from "vue-router";
 import { reactive, ref } from "vue";
 import { apiSignUp, apiSendVerificationEmail } from "@/functions/api/auth";
+import { apiGoogleOAuthRedirect } from "@/functions/api/google-oauth";
 import { LoadingModal, MessageModal, CloseModal } from "@/functions/swal";
 const router = useRouter();
 
@@ -207,4 +214,18 @@ async function sendVerificationEmail() {
 function resetSignedUpEmail() {
   signedUpEmail.value = "";
 }
+
+const googleSignUp = async () => {
+  try {
+    LoadingModal();
+    const response = await apiGoogleOAuthRedirect();
+    window.location.href = response.data.redirect_url;
+  } catch (error) {
+    return MessageModal({
+      icon: "error",
+      title: "Error",
+      text: error.response?.data?.message || error.message,
+    });
+  }
+};
 </script>
