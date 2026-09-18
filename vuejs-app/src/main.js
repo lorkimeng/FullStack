@@ -21,26 +21,26 @@ app.mount("#app");
 
 const userStore = useUserStore();
 router.beforeEach(async (to, from) => {
-  if (to.meta.guarded === undefined) {
-    return true;
-  }
-
-  try {
-    const token = userStore.getSanctumToken();
-    const response = await apiVerify(token);
-    const { data } = response;
-    userStore.setState(data.data);
-  } catch (error) {
-    if (error.response && error.response.status === 401) {
-      userStore.reset();
+    if (to.meta.guarded === undefined) {
+        return true;
     }
-  }
 
-  if (to.meta.guarded && !userStore.isAuthenticated) {
-    return { name: "auth.signin" };
-  }
+    try {
+        const token = userStore.getSanctumToken();
+        const response = await apiVerify(token);
+        const { data } = response;
+        userStore.setState(data.data);
+    } catch (error) {
+        if (error.response && error.response.status === 401) {
+            userStore.reset();
+        }
+    }
 
-  if (!to.meta.guarded && userStore.isAuthenticated) {
-    return { name: "dashboard" };
-  }
+    if (to.meta.guarded && !userStore.isAuthenticated) {
+        return { name: "auth.signin" };
+    }
+
+    if (!to.meta.guarded && userStore.isAuthenticated) {
+        return { name: "dashboard" };
+    }
 });

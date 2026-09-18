@@ -8,9 +8,9 @@ const router = useRouter();
 const userStore = useUserStore();
 
 onMounted(() => {
-  const token = userStore.getSanctumToken();
-  apiSignOut(token); // no need to await since we will remove the token regardless of the response
-  userStore.reset();
-  router.replace({ name: "auth.signin" });
+    const token = userStore.getSanctumToken();
+    apiSignOut(token); // no need to await since we will remove the token regardless of the response
+    userStore.reset();
+    router.replace({ name: "auth.signin" });
 });
 </script>
