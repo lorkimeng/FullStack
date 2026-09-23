@@ -10,10 +10,18 @@ use App\Http\Resources\User\UserResource;
 use App\Http\Requests\User\SendVerificationEmailRequest;
 use App\Http\Requests\User\SendResetPasswordEmailRequest;
 use App\Http\Requests\User\SetNewPasswordRequest;
+use App\Http\Requests\User\CreatePasswordRequest;
+use App\Http\Requests\User\ChangePasswordRequest;
+use App\Http\Requests\User\UpdateProfileImageRequest;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 use App\Models\User;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
+use Storage;
+use Throwable;
+use Str;
 
 class AuthController extends Controller
 {
@@ -113,7 +121,7 @@ class AuthController extends Controller
         ], 200);
     }
 
-    function sendResetPasswordEmail(SendResetPasswordEmailRequest $request)
+    public function sendResetPasswordEmail(SendResetPasswordEmailRequest $request)
     {
         $status = Password::sendResetLink(
             ['email' => $request->email],
@@ -133,7 +141,7 @@ class AuthController extends Controller
         ], 200);
     }
 
-    function setNewPassword(SetNewPasswordRequest $request)
+    public function setNewPassword(SetNewPasswordRequest $request)
     {
         $status = Password::reset(
             [
@@ -157,6 +165,150 @@ class AuthController extends Controller
 
         return response([
             'message' => 'Password has been reset successfully.'
+        ], 200);
+    }
+    public function createPassword(CreatePasswordRequest $request)
+    {
+        $user = $request->user();
+        if (!empty($user->password)) {
+            throw ValidationException::withMessages([
+                'new_password' => 'Password is already set.',
+            ]);
+        }
+        $user->password = $request->new_password;
+        $user->save();
+        $user->tokens()->delete();
+        return response([
+            'message' => 'Password created successfully.'
+        ], 200);
+    }
+
+    public function changePassword(ChangePasswordRequest $request)
+    {
+        $user = $request->user();
+        if (!Hash::check($request->current_password, $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => 'Current password does not match.',
+            ]);
+        }
+        if ($request->current_password === $request->new_password) {
+            throw ValidationException::withMessages([
+                'new_password' => 'New password must be different from current password.',
+            ]);
+        }
+        $user->password = $request->new_password;
+        $user->save();
+        $user->tokens()->delete();
+        return response([
+            'message' => 'Password changed successfully.'
+        ], 200);
+    }
+
+    public function updateProfileImage(UpdateProfileImageRequest $request)
+    {
+        $user = $request->user();
+        $oldImage = $user->getRawOriginal('profile_image');
+        $oldThumbnail = $user->getRawOriginal('profile_thumbnail');
+        $newImageFile = $request->file('profile_image');
+
+        // disk to store images
+        $disk = Storage::disk('public');
+        // image manager instance for handling image operations
+        $imageManage = new ImageManager(new Driver());
+        $imagePath = 'profile_images/';
+        $thumbnailPath = 'profile_images/thumbnails/';
+
+        try {
+
+            $imageSource = $newImageFile->getRealPath();
+            if (!$imageSource) {
+                throw ValidationException::withMessages([
+                    'profile_image' => 'Invalid profile image uploaded.',
+                ]);
+            }
+
+            $imageData = $imageManage->decodePath($imageSource);
+            if (!$imageData) {
+                throw ValidationException::withMessages([
+                    'profile_image' => 'Failed to decode profile image.',
+                ]);
+            }
+            // get the file extension and generate a unique filename
+            $extension = $newImageFile->guessExtension() ?? $newImageFile->extension();
+            $filename = Str::uuid() . '.' . $extension;
+            $isLandscapeOrSquare = $imageData->width() >= $imageData->height();
+
+            // encode the image using the determined file extension and store it on the disk
+            $encodedImage = $imageData->encodeUsingFileExtension($extension);
+            $imagePath = $imagePath . $filename;
+            $disk->put($imagePath, (string) $encodedImage);
+
+
+            $thumbnailSize = 512;
+            $thumbnail = $imageData->scaleDown(
+                width: $isLandscapeOrSquare ? $thumbnailSize : null,
+                height: $isLandscapeOrSquare ? null : $thumbnailSize
+            );
+
+            $encodedThumbnail = $thumbnail->encodeUsingFileExtension($extension);
+            $thumbnailPath = $thumbnailPath . $filename;
+            $disk->put($thumbnailPath, (string) $encodedThumbnail);
+
+            $user->profile_image = $imagePath;
+            $user->profile_thumbnail = $thumbnailPath;
+            $user->save();
+
+        } catch (Throwable $e) {
+            // Save failed - delete the newly stored file so no orphan is left.
+            if (!is_null($imagePath) && $disk->exists($imagePath)) {
+                $disk->delete($imagePath);
+            }
+            if (!is_null($thumbnailPath) && $disk->exists($thumbnailPath)) {
+                $disk->delete($thumbnailPath);
+            }
+            throw $e;
+        }
+
+        // Save succeeded — safe to delete the old file now.
+        if (!is_null($oldImage) && $disk->exists($oldImage)) {
+            $disk->delete($oldImage);
+        }
+        if (!is_null($oldThumbnail) && $disk->exists($oldThumbnail)) {
+            $disk->delete($oldThumbnail);
+        }
+
+        return response([
+            'message' => 'User profile image updated successfully.',
+            'profile_image' => $user->profile_image,
+            'profile_thumbnail' => $user->profile_thumbnail,
+        ], 200);
+    }
+
+    public function deleteProfileImage(Request $request)
+    {
+        $user = $request->user();
+        $oldImage = $user->getRawOriginal('profile_image');
+        $oldThumbnail = $user->getRawOriginal('profile_thumbnail');
+
+        try {
+            $user->profile_image = null;
+            $user->profile_thumbnail = null;
+            $user->save();
+        } catch (Throwable $e) {
+            throw $e;
+        }
+
+        // Save succeeded — safe to delete the file now.
+        $disk = Storage::disk('public');
+        if (!is_null($oldImage) && $disk->exists($oldImage)) {
+            $disk->delete($oldImage);
+        }
+        if (!is_null($oldThumbnail) && $disk->exists($oldThumbnail)) {
+            $disk->delete($oldThumbnail);
+        }
+
+        return response([
+            'message' => 'User profile image deleted successfully.',
         ], 200);
     }
 }

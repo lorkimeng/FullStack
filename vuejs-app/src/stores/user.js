@@ -5,6 +5,9 @@ export const useUserStore = defineStore("user", {
         id: null,
         name: null,
         email: null,
+        profile_image: null,
+        profile_thumbnail: null,
+        password_null: true,
     }),
     getters: {
         isAuthenticated: (state) => !!state.id,
@@ -15,11 +18,17 @@ export const useUserStore = defineStore("user", {
             this.id = user.id;
             this.name = user.name;
             this.email = user.email;
+            this.profile_image = user.profile_image;
+            this.profile_thumbnail = user.profile_thumbnail;
+            this.password_null = user.password_null;
         },
         resetState() {
             this.id = null;
             this.name = null;
             this.email = null;
+            this.profile_image = null;
+            this.profile_thumbnail = null;
+            this.password_null = true;
         },
 
         // User Sanctum Token management

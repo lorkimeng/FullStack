@@ -2,6 +2,7 @@ import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "admin-lte/dist/js/adminlte.min.js";
 
 import { createApp } from "vue";
+import axios from "axios";
 import App from "./App.vue";
 import router from "./router";
 import { createPinia } from "pinia";
@@ -20,6 +21,15 @@ app.use(router);
 app.mount("#app");
 
 const userStore = useUserStore();
+// Set up Axios interceptor to add Authorization header dynamically
+// Only when the token is available and not already set in the request
+axios.interceptors.request.use((config) => {
+    const token = userStore.getSanctumToken();
+    if (token && !config.headers.Authorization) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
 router.beforeEach(async (to, from) => {
     if (to.meta.guarded === undefined) {
         return true;
