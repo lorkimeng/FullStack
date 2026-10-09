@@ -6,6 +6,7 @@ import ResetPassword from "@/components/auth/ResetPassword.vue";
 import SetNewPassword from "@/components/auth/SetNewPassword.vue";
 import GoogleOAuth from "@/components/google-oauth/GoogleOAuth.vue";
 import Dashboard from "@/components/pages/Dashboard.vue";
+import User from "@/components/pages/User.vue";
 import { createRouter, createWebHistory } from "vue-router";
 
 import Navbar from "@/components/includes/Navbar.vue";
@@ -84,6 +85,18 @@ const router = createRouter({
             name: "profile",
             components: {
                 default: Profile,
+                navbar: Navbar,
+                left_sidebar: LeftSidebar,
+                right_sidebar: RightSidebar,
+                footer: Footer,
+            },
+            meta: { guarded: true },
+        },
+        {
+            path: "/users",
+            name: "users",
+            components: {
+                default: User,
                 navbar: Navbar,
                 left_sidebar: LeftSidebar,
                 right_sidebar: RightSidebar,

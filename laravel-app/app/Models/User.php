@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Builder;
 use Storage;
 
 #[Fillable(['name', 'email', 'password', 'profile_image'])]
@@ -66,5 +67,15 @@ class User extends Authenticatable
         return Attribute::make(
             get: fn($value) => $value ? Storage::disk('public')->url($value) : null,
         );
+    }
+
+    protected function scopeIsAdmin(Builder $query): void
+    {
+        $query->where('level', 'ADMIN');
+    }
+
+    protected function scopeIsUser(Builder $query): void
+    {
+        $query->where('level', 'CONTROLLER');
     }
 }

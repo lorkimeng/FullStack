@@ -8,9 +8,11 @@ export const useUserStore = defineStore("user", {
         profile_image: null,
         profile_thumbnail: null,
         password_null: true,
+        level: null,
     }),
     getters: {
         isAuthenticated: (state) => !!state.id,
+        isAdmin: (state) => state.level === "ADMIN",
     },
     actions: {
         // User state management
@@ -21,6 +23,7 @@ export const useUserStore = defineStore("user", {
             this.profile_image = user.profile_image;
             this.profile_thumbnail = user.profile_thumbnail;
             this.password_null = user.password_null;
+            this.level = user.level;
         },
         resetState() {
             this.id = null;
@@ -29,6 +32,7 @@ export const useUserStore = defineStore("user", {
             this.profile_image = null;
             this.profile_thumbnail = null;
             this.password_null = true;
+            this.level = null;
         },
 
         // User Sanctum Token management
